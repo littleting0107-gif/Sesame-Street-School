@@ -5,9 +5,10 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Monitor, Users } f
 
 interface TherapistViewProps {
   bookings: StudentBooking[];
+  onDeleteBooking?: (date: string, timeId: string, computerId: ComputerId) => void;
 }
 
-export const TherapistView: React.FC<TherapistViewProps> = ({ bookings }) => {
+export const TherapistView: React.FC<TherapistViewProps> = ({ bookings, onDeleteBooking }) => {
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewDate, setViewDate] = useState<Date>(new Date()); // The date selected to view schedule
@@ -79,9 +80,9 @@ export const TherapistView: React.FC<TherapistViewProps> = ({ bookings }) => {
                     
                     let style = 'bg-gray-50 border-gray-100 text-gray-300';
                     if (booking) {
-                        if (compId === 'A') style = 'bg-rose-100 border-rose-200 text-rose-800';
-                        if (compId === 'B') style = 'bg-sky-100 border-sky-200 text-sky-800';
-                        if (compId === 'C') style = 'bg-emerald-100 border-emerald-200 text-emerald-800';
+                        if (compId === 'A') style = 'bg-rose-100 border-rose-200 text-rose-800 cursor-pointer hover:opacity-80';
+                        if (compId === 'B') style = 'bg-sky-100 border-sky-200 text-sky-800 cursor-pointer hover:opacity-80';
+                        if (compId === 'C') style = 'bg-emerald-100 border-emerald-200 text-emerald-800 cursor-pointer hover:opacity-80';
                     } else {
                             if (compId === 'A') style = 'bg-rose-50/50 border-rose-100 text-rose-200';
                             if (compId === 'B') style = 'bg-sky-50/50 border-sky-100 text-sky-200';
@@ -89,7 +90,16 @@ export const TherapistView: React.FC<TherapistViewProps> = ({ bookings }) => {
                     }
 
                     return (
-                        <div key={compId} className={`text-xs px-2 py-0.5 rounded border flex justify-between items-center ${style} ${booking ? 'shadow-sm' : ''} h-9`}>
+                        <div 
+                            key={compId} 
+                            onDoubleClick={() => {
+                                if (booking && onDeleteBooking) {
+                                    onDeleteBooking(dateStr, slotId, compId);
+                                }
+                            }}
+                            title={booking ? "點擊兩下取消預約" : ""}
+                            className={`text-xs px-2 py-0.5 rounded border flex justify-between items-center ${style} ${booking ? 'shadow-sm' : ''} h-9`}
+                        >
                             <span className="font-bold text-sm shrink-0">{compId}</span>
                             <div className="flex flex-col text-right overflow-hidden ml-1 w-full justify-center leading-tight">
                                 <span className="truncate font-bold block">{booking ? booking.name : '-'}</span>

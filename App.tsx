@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PatientView } from './components/PatientView';
 import { TherapistView } from './components/TherapistView';
-import { StudentBooking } from './types';
+import { StudentBooking, ComputerId } from './types';
 import { UserCircle, LayoutDashboard, LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -30,6 +30,25 @@ const App: React.FC = () => {
 
   const handleAddBooking = (newBooking: StudentBooking) => {
     setBookings(prev => [...prev, newBooking]);
+  };
+
+  const handleDeleteBooking = (date: string, timeId: string, computerId: ComputerId) => {
+    const confirmDelete = window.confirm(`確定要取消 ${date} ${timeId} 電腦${computerId} 的預約嗎？`);
+    if (!confirmDelete) return;
+
+    setBookings(prev => {
+      // Iterate through all student bookings
+      const updatedBookings = prev.map(student => {
+        // Filter out the specific slot we want to delete
+        const newSlots = student.bookings.filter(
+          slot => !(slot.date === date && slot.timeId === timeId && slot.computerId === computerId)
+        );
+        return { ...student, bookings: newSlots };
+      });
+
+      // Remove student records that have no booked slots left
+      return updatedBookings.filter(student => student.bookings.length > 0);
+    });
   };
 
   return (
@@ -75,7 +94,10 @@ const App: React.FC = () => {
             onAddBooking={handleAddBooking}
           />
         ) : (
-          <TherapistView bookings={bookings} />
+          <TherapistView 
+            bookings={bookings} 
+            onDeleteBooking={handleDeleteBooking}
+          />
         )}
       </main>
     </div>
