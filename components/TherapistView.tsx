@@ -47,6 +47,10 @@ export const TherapistView: React.FC<TherapistViewProps> = ({ bookings }) => {
   };
 
   const currentWeek = useMemo(() => getWeekRange(viewDate), [viewDate]);
+  
+  // Split week into Weekdays (Mon-Fri) and Saturday
+  const weekDays = useMemo(() => currentWeek.slice(0, 5), [currentWeek]);
+  const saturday = useMemo(() => currentWeek[5], [currentWeek]);
 
   // Transform bookings into a map for easy lookup: Key="YYYY-MM-DD_TimeId_ComputerId" -> StudentName
   const bookingMap = useMemo(() => {
@@ -59,6 +63,45 @@ export const TherapistView: React.FC<TherapistViewProps> = ({ bookings }) => {
     });
     return map;
   }, [bookings]);
+
+  const weekdaySlots = TIME_SLOTS.filter(s => s.period === 'PM');
+  const saturdaySlots = TIME_SLOTS.filter(s => s.period === 'AM');
+
+  const renderCell = (date: Date, slotId: string) => {
+      const dateStr = formatDateStr(date);
+      return (
+        <td key={dateStr} className="p-1 border-r align-top">
+            <div className="flex flex-col gap-1 justify-center">
+                {['A', 'B', 'C'].map(c => {
+                    const compId = c as ComputerId;
+                    const key = `${dateStr}_${slotId}_${compId}`;
+                    const booking = bookingMap.get(key);
+                    
+                    let style = 'bg-gray-50 border-gray-100 text-gray-300';
+                    if (booking) {
+                        if (compId === 'A') style = 'bg-rose-100 border-rose-200 text-rose-800';
+                        if (compId === 'B') style = 'bg-sky-100 border-sky-200 text-sky-800';
+                        if (compId === 'C') style = 'bg-emerald-100 border-emerald-200 text-emerald-800';
+                    } else {
+                            if (compId === 'A') style = 'bg-rose-50/50 border-rose-100 text-rose-200';
+                            if (compId === 'B') style = 'bg-sky-50/50 border-sky-100 text-sky-200';
+                            if (compId === 'C') style = 'bg-emerald-50/50 border-emerald-100 text-emerald-200';
+                    }
+
+                    return (
+                        <div key={compId} className={`text-xs px-2 py-0.5 rounded border flex justify-between items-center ${style} ${booking ? 'shadow-sm' : ''} h-9`}>
+                            <span className="font-bold text-sm shrink-0">{compId}</span>
+                            <div className="flex flex-col text-right overflow-hidden ml-1 w-full justify-center leading-tight">
+                                <span className="truncate font-bold block">{booking ? booking.name : '-'}</span>
+                                {booking && <span className="truncate text-[10px] opacity-80 block">{booking.class}</span>}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </td>
+      );
+  };
 
   return (
     <div className="h-full flex flex-col md:flex-row gap-6 max-w-7xl mx-auto p-4 md:p-6">
@@ -122,82 +165,61 @@ export const TherapistView: React.FC<TherapistViewProps> = ({ bookings }) => {
             </div>
          </div>
 
-         <div className="overflow-auto flex-1 p-4">
-             {/* The Schedule Table */}
-             <div className="min-w-[800px]">
-                <table className="w-full text-sm text-left border-collapse">
-                    <thead className="sticky top-0 z-20 bg-white shadow-sm">
-                        <tr>
-                            <th className="p-3 border-b border-r bg-gray-50 w-20 text-center text-gray-600 font-bold sticky left-0 z-30">時段</th>
-                            {currentWeek.map(date => {
-                                const dateStr = formatDateStr(date);
-                                const dayName = WEEK_DAYS[date.getDay()];
-                                return (
-                                    <th key={dateStr} className="p-2 border-b min-w-[140px] text-center bg-gray-50">
-                                        <div className="font-bold text-gray-800">{dayName}</div>
-                                        <div className="text-xs text-gray-500">{dateStr}</div>
-                                    </th>
-                                );
-                            })}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                        {TIME_SLOTS.map(slot => {
-                            // Only show Sat AM slots if it's Sat, but here we show rows for all.
-                            // To make it clean: if row is PM, Sat is gray. If row is AM, Mon-Fri is gray.
-                            
-                            const isAm = slot.period === 'AM';
-
-                            return (
-                                <tr key={slot.id} className="hover:bg-gray-50/50">
-                                    <td className="p-2 border-r text-center font-bold text-gray-500 sticky left-0 bg-white z-10">{slot.label}</td>
-                                    {currentWeek.map(date => {
-                                        const dateStr = formatDateStr(date);
-                                        const dayOfWeek = date.getDay(); // 1-6
-                                        
-                                        // Invalid slot logic
-                                        const isSat = dayOfWeek === 6;
-                                        const isValid = (isSat && isAm) || (!isSat && !isAm);
-
-                                        if (!isValid) {
-                                            return <td key={dateStr} className="bg-gray-100 border-r relative"><div className="absolute inset-0 pattern-dots opacity-10"></div></td>;
-                                        }
-
-                                        return (
-                                            <td key={dateStr} className="p-1 border-r align-top h-24">
-                                                <div className="flex flex-col gap-1 h-full">
-                                                    {['A', 'B', 'C'].map(c => {
-                                                        const compId = c as ComputerId;
-                                                        const key = `${dateStr}_${slot.id}_${compId}`;
-                                                        const booking = bookingMap.get(key);
-                                                        
-                                                        let style = 'bg-gray-50 border-gray-100 text-gray-300';
-                                                        if (booking) {
-                                                            if (compId === 'A') style = 'bg-rose-100 border-rose-200 text-rose-800';
-                                                            if (compId === 'B') style = 'bg-sky-100 border-sky-200 text-sky-800';
-                                                            if (compId === 'C') style = 'bg-emerald-100 border-emerald-200 text-emerald-800';
-                                                        } else {
-                                                             if (compId === 'A') style = 'bg-rose-50/50 border-rose-100 text-rose-200';
-                                                             if (compId === 'B') style = 'bg-sky-50/50 border-sky-100 text-sky-200';
-                                                             if (compId === 'C') style = 'bg-emerald-50/50 border-emerald-100 text-emerald-200';
-                                                        }
-
-                                                        return (
-                                                            <div key={compId} className={`text-xs px-2 py-1 rounded border flex justify-between items-center ${style} ${booking ? 'shadow-sm font-semibold' : ''}`}>
-                                                                <span>{compId}</span>
-                                                                <span className="truncate ml-1 max-w-[80px]">{booking ? booking.name : '-'}</span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </td>
-                                        );
-                                    })}
+         <div className="overflow-auto flex-1 p-4 bg-slate-50">
+             <div className="flex flex-col xl:flex-row gap-6 items-start">
+                 
+                 {/* Table 1: Weekdays (PM) */}
+                 <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden w-full">
+                     <div className="p-3 bg-gray-50 border-b font-bold text-gray-700">週一至週五 (PM)</div>
+                     <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr>
+                                    <th className="p-2 border-b border-r bg-white sticky left-0 z-10 w-16 text-center text-gray-500">時段</th>
+                                    {weekDays.map(date => (
+                                        <th key={date.toISOString()} className="p-2 border-b min-w-[120px] text-center bg-gray-50/50">
+                                            <div className="font-bold text-gray-800">{WEEK_DAYS[date.getDay()]}</div>
+                                            <div className="text-xs text-gray-500">{formatDateStr(date)}</div>
+                                        </th>
+                                    ))}
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody className="divide-y">
+                                {weekdaySlots.map(slot => (
+                                    <tr key={slot.id} className="hover:bg-gray-50/50">
+                                        <td className="p-2 border-r text-center font-bold text-gray-500 sticky left-0 bg-white">{slot.label}</td>
+                                        {weekDays.map(date => renderCell(date, slot.id))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                     </div>
+                 </div>
+
+                 {/* Table 2: Saturday (AM) */}
+                 <div className="w-full xl:w-64 flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                     <div className="p-3 bg-teal-50 border-b font-bold text-teal-800">週六 (AM)</div>
+                     <table className="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th className="p-2 border-b border-r bg-white w-16 text-center text-gray-500">時段</th>
+                                <th className="p-2 border-b text-center bg-teal-50/30">
+                                    <div className="font-bold text-teal-900">Sat</div>
+                                    <div className="text-xs text-teal-600">{formatDateStr(saturday)}</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {saturdaySlots.map(slot => (
+                                <tr key={slot.id} className="hover:bg-teal-50/10">
+                                    <td className="p-2 border-r text-center font-bold text-gray-500">{slot.label}</td>
+                                    {renderCell(saturday, slot.id)}
+                                </tr>
+                            ))}
+                        </tbody>
+                     </table>
+                 </div>
+
              </div>
          </div>
       </div>

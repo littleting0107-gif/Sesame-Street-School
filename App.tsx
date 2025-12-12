@@ -119,20 +119,20 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Navbar */}
-      <nav className={`shadow-md z-50 ${role === 'patient' ? 'bg-teal-600' : 'bg-[#BCD4E6]'}`}>
+      <nav className={`shadow-md z-50 ${role === 'patient' ? 'bg-[#fed7dd]' : 'bg-[#BCD4E6]'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-               {role === 'patient' ? <UserCircle className="text-white w-6 h-6" /> : <LayoutDashboard className="text-slate-700 w-6 h-6" />}
-               <span className={`${role === 'patient' ? 'text-white' : 'text-slate-800'} font-bold text-lg tracking-wide`}>
-                 {role === 'patient' ? '電腦補課預約' : 'Teacher Schedule'}
+               {role === 'patient' ? <UserCircle className="text-gray-700 w-6 h-6" /> : <LayoutDashboard className="text-slate-700 w-6 h-6" />}
+               <span className="text-gray-800 font-bold text-lg tracking-wide">
+                 {role === 'patient' ? 'Sesame Street School 補課預約' : 'Teacher Schedule'}
                </span>
             </div>
             <div className="flex items-center gap-2">
                 {role === 'patient' && (
                     <button 
                         onClick={() => setRole('therapist')}
-                        className="text-xs bg-white/20 text-white hover:bg-white/30 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                        className="text-xs bg-white/40 text-gray-800 hover:bg-white/60 px-3 py-1.5 rounded-lg font-medium transition-colors"
                     >
                         Teacher Login
                     </button>
