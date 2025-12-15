@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { TIME_SLOTS, WEEK_DAYS } from '../constants';
 import { StudentBooking, ComputerId } from '../types';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Monitor, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Search, X } from 'lucide-react';
 
 interface TherapistViewProps {
   bookings: StudentBooking[];
@@ -12,6 +12,7 @@ export const TherapistView: React.FC<TherapistViewProps> = ({ bookings, onDelete
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewDate, setViewDate] = useState<Date>(new Date()); // The date selected to view schedule
+  const [searchTerm, setSearchTerm] = useState('');
 
   // --- Calendar Helpers ---
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -28,6 +29,13 @@ export const TherapistView: React.FC<TherapistViewProps> = ({ bookings, onDelete
   const formatDateStr = (date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
+
+  // --- Search Logic ---
+  const filteredBookings = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    const lowerTerm = searchTerm.toLowerCase();
+    return bookings.filter(b => b.name.toLowerCase().includes(lowerTerm));
+  }, [bookings, searchTerm]);
 
   // --- Schedule Logic ---
   // Given a viewDate, calculate the week (Mon - Sat)
@@ -116,48 +124,113 @@ export const TherapistView: React.FC<TherapistViewProps> = ({ bookings, onDelete
   return (
     <div className="h-full flex flex-col md:flex-row gap-6 max-w-7xl mx-auto p-4 md:p-6">
       
-      {/* Sidebar: Calendar */}
-      <div className="w-full md:w-80 flex-shrink-0 bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden h-fit">
-        <div className="p-4 bg-[#BCD4E6] flex justify-between items-center">
-            <button onClick={handlePrevMonth} className="p-1 hover:bg-white/20 rounded-full text-slate-800"><ChevronLeft className="w-5 h-5"/></button>
-            <span className="font-bold text-slate-800 text-lg">{year}年 {month + 1}月</span>
-            <button onClick={handleNextMonth} className="p-1 hover:bg-white/20 rounded-full text-slate-800"><ChevronRight className="w-5 h-5"/></button>
-        </div>
-        <div className="grid grid-cols-7 text-center p-2 text-xs font-bold text-gray-500 border-b bg-gray-50">
-            {WEEK_DAYS.map(d => <div key={d}>{d}</div>)}
-        </div>
-        <div className="grid grid-cols-7 gap-1 p-2">
-            {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-                const day = i + 1;
-                const dateObj = new Date(year, month, day);
-                const dateStr = formatDateStr(dateObj);
-                // Check if current view week contains this day
-                const isInViewWeek = currentWeek.some(d => d.toDateString() === dateObj.toDateString());
-                const isSunday = dateObj.getDay() === 0;
-
-                return (
-                    <button
-                        key={day}
-                        disabled={isSunday}
-                        onClick={() => setViewDate(dateObj)}
-                        className={`
-                            h-10 w-full rounded-lg text-sm font-medium transition-all relative
-                            ${isInViewWeek 
-                                ? 'bg-[#5C8AA6] text-white shadow-md' 
-                                : isSunday
-                                    ? 'text-gray-300 cursor-not-allowed'
-                                    : 'hover:bg-[#BCD4E6]/50 text-gray-700'
-                            }
-                        `}
-                    >
-                        {day}
+      {/* Sidebar: Calendar & Search */}
+      <div className="w-full md:w-80 flex-shrink-0 bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden h-[85vh]">
+        
+        {/* Search Input */}
+        <div className="p-4 border-b bg-white z-10">
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input 
+                   type="text" 
+                   placeholder="搜尋姓名..." 
+                   value={searchTerm}
+                   onChange={e => setSearchTerm(e.target.value)}
+                   className="w-full pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#5C8AA6] focus:border-[#5C8AA6] outline-none transition-all"
+                />
+                {searchTerm && (
+                    <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
+                        <X className="w-3 h-3" />
                     </button>
-                );
-            })}
+                )}
+            </div>
         </div>
-        <div className="p-4 border-t bg-gray-50">
-            <p className="text-xs text-gray-500 text-center">點選日期以查看該週班表</p>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {!searchTerm ? (
+                <>
+                    {/* Calendar View */}
+                    <div className="p-4 bg-[#BCD4E6] flex justify-between items-center sticky top-0 z-10">
+                        <button onClick={handlePrevMonth} className="p-1 hover:bg-white/20 rounded-full text-slate-800"><ChevronLeft className="w-5 h-5"/></button>
+                        <span className="font-bold text-slate-800 text-lg">{year}年 {month + 1}月</span>
+                        <button onClick={handleNextMonth} className="p-1 hover:bg-white/20 rounded-full text-slate-800"><ChevronRight className="w-5 h-5"/></button>
+                    </div>
+                    <div className="grid grid-cols-7 text-center p-2 text-xs font-bold text-gray-500 border-b bg-gray-50">
+                        {WEEK_DAYS.map(d => <div key={d}>{d}</div>)}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 p-2">
+                        {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                        {Array.from({ length: daysInMonth }).map((_, i) => {
+                            const day = i + 1;
+                            const dateObj = new Date(year, month, day);
+                            const dateStr = formatDateStr(dateObj);
+                            // Check if current view week contains this day
+                            const isInViewWeek = currentWeek.some(d => d.toDateString() === dateObj.toDateString());
+                            const isSunday = dateObj.getDay() === 0;
+
+                            return (
+                                <button
+                                    key={day}
+                                    disabled={isSunday}
+                                    onClick={() => setViewDate(dateObj)}
+                                    className={`
+                                        h-10 w-full rounded-lg text-sm font-medium transition-all relative
+                                        ${isInViewWeek 
+                                            ? 'bg-[#5C8AA6] text-white shadow-md' 
+                                            : isSunday
+                                                ? 'text-gray-300 cursor-not-allowed'
+                                                : 'hover:bg-[#BCD4E6]/50 text-gray-700'
+                                        }
+                                    `}
+                                >
+                                    {day}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="p-4 border-t bg-gray-50">
+                        <p className="text-xs text-gray-500 text-center">點選日期以查看該週班表</p>
+                    </div>
+                </>
+            ) : (
+                /* Search Results */
+                <div className="p-3 space-y-3 bg-gray-50 min-h-full">
+                    {filteredBookings.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                            <Search className="w-10 h-10 mb-2 opacity-20" />
+                            <p className="text-sm">找不到相關預約</p>
+                        </div>
+                    ) : (
+                        filteredBookings.map(student => (
+                            <div key={student.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="font-bold text-gray-800 text-base">{student.name}</div>
+                                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full inline-block mt-1">{student.studentClass}</div>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5 mt-3">
+                                    <div className="text-xs font-semibold text-gray-400 px-1">預約時段</div>
+                                    {student.bookings
+                                        .sort((a, b) => a.date.localeCompare(b.date) || a.timeId.localeCompare(b.timeId))
+                                        .map((slot, idx) => (
+                                        <button 
+                                            key={idx}
+                                            onClick={() => setViewDate(new Date(slot.date))}
+                                            className="w-full text-left text-sm p-2 rounded-lg bg-slate-50 hover:bg-[#BCD4E6]/30 hover:text-[#5C8AA6] border border-gray-100 hover:border-[#BCD4E6] flex justify-between items-center group transition-colors"
+                                        >
+                                            <span className="font-medium text-gray-600 group-hover:text-[#5C8AA6]">{slot.date} {slot.timeId}</span>
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-500 group-hover:border-[#5C8AA6]/30 group-hover:text-[#5C8AA6]">
+                                                {slot.computerId}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
         </div>
       </div>
 
